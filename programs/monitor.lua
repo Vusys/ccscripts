@@ -125,6 +125,28 @@ end
 -- Rendering.
 -- ===========================================================================
 
+-- Fleet summary: how many turtles are on each job kind, e.g.
+-- "quarry:2 treefarm:1 courier:3" -- sorted by job name so it's stable
+-- across renders instead of shuffling with whatever order pairs()
+-- happens to walk in.
+local function formatFleetSummary(ids)
+  local counts = {}
+  for _, id in ipairs(ids) do
+    local jobName = turtles[id].job or "?"
+    counts[jobName] = (counts[jobName] or 0) + 1
+  end
+  local jobNames = {}
+  for jobName in pairs(counts) do
+    jobNames[#jobNames + 1] = jobName
+  end
+  table.sort(jobNames)
+  local parts = {}
+  for _, jobName in ipairs(jobNames) do
+    parts[#parts + 1] = flex.escapeMarkup(jobName) .. ":" .. counts[jobName]
+  end
+  return table.concat(parts, " ")
+end
+
 local function render()
   term.clear()
   local w, h = term.getSize()
@@ -137,7 +159,16 @@ local function render()
   for id in pairs(turtles) do
     ids[#ids + 1] = id
   end
-  table.sort(ids)
+  -- Grouped by job kind first (so a fleet running several kinds of job
+  -- reads as clusters, not an interleaved shuffle), id as the
+  -- tiebreaker within a kind.
+  table.sort(ids, function(a, b)
+    local jobA, jobB = turtles[a].job or "?", turtles[b].job or "?"
+    if jobA ~= jobB then
+      return jobA < jobB
+    end
+    return a < b
+  end)
 
   local row = 3
   local logStart = math.max(row, h - LOG_LINES - 1)
@@ -145,6 +176,15 @@ local function render()
   if #ids == 0 then
     term.setCursorPos(1, row)
     flex.printColors("#8Waiting for status broadcasts...")
+  else
+    -- No blank line after this one (unlike most sections here) --
+    -- every row spent on chrome is a row not available for an actual
+    -- turtle once the fleet is bigger than the terminal, and the
+    -- summary line already reads as visually distinct from the list
+    -- below it without needing a gap.
+    term.setCursorPos(1, row)
+    flex.printColors("#7" .. formatFleetSummary(ids))
+    row = row + 1
   end
 
   for _, id in ipairs(ids) do

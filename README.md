@@ -65,6 +65,17 @@ Example: `pkg install tunnel fasttunnel`.
   Digs straight down until bedrock (or `maxDepth`, if given).
   `return` ascends back to the start when done instead of staying at
   the bottom.
+- **courier** `<length> [trips <N>] [dump] [idle]`
+  Shuttles items between a pickup chest behind the start and a dropoff
+  chest ahead of the far end, `length` blocks away. `idle` waits for a
+  wireless `courier_request` before each trip instead of shuttling
+  continuously.
+- **relay** (no args)
+  Rebroadcasts everything heard on `modem_channel` back out on the
+  same channel, verbatim -- extends effective wireless range between
+  two points that can each reach the relay but not each other
+  directly. Single-hop only: don't run two relays whose ranges
+  overlap.
 - **tunnel** `<width> <height> <length> [return]`
   Digs a rectangular tunnel, `width` must be odd. `return` sends it
   back to the start when done.
@@ -74,18 +85,21 @@ Example: `pkg install tunnel fasttunnel`.
   Save/restore a parked job, clear a stuck auto-resume trigger, or edit
   the dig/flex config files.
 - **monitor** `[timeout]`
-  Live wireless dashboard for anything broadcasting status via
-  `flex.sendData()` -- quarry does, out of the box. Run it on any
-  computer with a wireless modem on the same `modem_channel` as your
-  turtles (default 6464 for everyone). If a `monitor` peripheral is
-  attached it renders there; otherwise it uses the terminal. `timeout`
-  is how many seconds of silence before a turtle is shown OFFLINE
-  (default 30). Press `Q` to quit. Not installed by default --
+  Live wireless fleet dashboard for anything broadcasting status via
+  `lib/job.lua` -- quarry/treefarm/farm/build/bridge/well/courier all
+  do, out of the box. Rows are grouped by job kind with a per-kind
+  count summary at the top. Run it on any computer with a wireless
+  modem on the same `modem_channel` as your turtles (default 6464 for
+  everyone). If a `monitor` peripheral is attached it renders there;
+  otherwise it uses the terminal. `timeout` is how many seconds of
+  silence before a turtle is shown OFFLINE (default 30). Press `Q` to
+  quit. Not installed by default --
   `pkg install monitor`.
 
 ## Wireless status
 
-Every job-shaped program (`quarry`, and anything else built on
+Every job-shaped program (`quarry`, `treefarm`, `farm`, `build`,
+`bridge`, `well`, `courier`, and anything else built on
 `lib/job.lua`) broadcasts a small status update -- job kind, position,
 fuel, dug count, state (its own working state, e.g. `mining`, plus the
 common `paused`/`refueling`/`dumping`/`done`/`stuck`), and any job-
@@ -136,6 +150,8 @@ programs/
   build.lua
   bridge.lua
   well.lua
+  courier.lua
+  relay.lua
   tunnel.lua
   fasttunnel.lua
   dig-cli.lua
@@ -158,9 +174,12 @@ check exactly how a CC:Tweaked API behaves instead of guessing.
 ## Roadmap
 
 More automation is the long-term goal, added as new `manifest.json`
-entries without any change to the installer/pkg architecture --
-`treefarm`/`farm`/`build` and vein-following mining are the first of
-these, all built on a shared `lib/job.lua` scaffold so every future
-job-shaped program (item logistics between turtles, a wireless relay
-for range extension, ...) gets fuel/inventory/pause housekeeping and a
-`monitor`-visible status heartbeat for free.
+entries without any change to the installer/pkg architecture. Mining
+(`quarry`, with optional vein-following), farming (`treefarm`, `farm`),
+construction (`build`), utilities (`bridge`, `well`), and logistics
+(`courier`, `relay`) are all built on a shared `lib/job.lua` scaffold,
+so any future job-shaped program gets fuel/inventory/pause
+housekeeping and a `monitor`-visible status heartbeat for free. Next
+candidates: multi-turtle coordination for a single large quarry job
+(claiming lanes over the wireless channel rather than each turtle
+working in isolation), and a roaming explorer/mapper.

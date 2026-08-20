@@ -90,10 +90,10 @@
       "category": "program",
       "path": "programs/monitor.lua",
       "install_as": "monitor.lua",
-      "version": "1.1.3",
+      "version": "1.2.0",
       "depends": ["flex"],
       "first_run": false,
-      "description": "Wireless fleet dashboard for any lib/job.lua-based program."
+      "description": "Wireless fleet dashboard for any lib/job.lua-based program -- grouped by job kind, with a per-kind count summary."
     },
     {
       "name": "tunnel",
@@ -164,6 +164,26 @@
       "depends": ["job", "dig", "flex"],
       "first_run": false,
       "description": "Digs straight down until bedrock or a configured max depth."
+    },
+    {
+      "name": "courier",
+      "category": "program",
+      "path": "programs/courier.lua",
+      "install_as": "courier.lua",
+      "version": "1.0.0",
+      "depends": ["job", "dig", "flex"],
+      "first_run": false,
+      "description": "Shuttles items between two fixed chest waypoints, optionally wireless-summonable."
+    },
+    {
+      "name": "relay",
+      "category": "program",
+      "path": "programs/relay.lua",
+      "install_as": "relay.lua",
+      "version": "1.0.0",
+      "depends": ["flex"],
+      "first_run": false,
+      "description": "Rebroadcasts wireless traffic to extend effective modem range (single-hop only)."
     }
   ]
 }
