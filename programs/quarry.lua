@@ -3,7 +3,7 @@
 -- Strip-mines a rectangular volume, layer by layer, in a boustrophedon
 -- (zigzag) sweep. Survives a reboot mid-job via dig.lua's position save.
 --
--- Usage: quarry <length> [width] [depth] [skip <N>] [dump] [nolava] [nether]
+-- Usage: quarry <length> [width] [depth] [skip <N>] [dump] [nolava] [nether] [vein]
 --   length   required. Z-axis size of the quarry.
 --   width    optional, defaults to length. X-axis size.
 --   depth    optional (only read if `width` was numeric), defaults to
@@ -17,6 +17,11 @@
 --            (on by default) and free the reserved building-block slot.
 --   nether   reserve 4 stacks of building block instead of 1 (nether
 --            quarries tend to hit lava a lot more often).
+--   vein     chase any ore vein (dig.mineVein(), see dig_options.cfg's
+--            [ores] list) visible through the excavated volume's walls,
+--            floor, or ceiling before continuing the normal sweep --
+--            catches the rest of a vein that would otherwise get left
+--            half-mined at the quarry's boundary.
 --
 -- Resumability note: unlike the version this replaces, the zigzag sweep
 -- direction (which way X advances per layer, which way Z sweeps per
@@ -61,6 +66,7 @@ local skip = 0
 local dodumps = false
 local lava = true
 local nether = false
+local veinMode = false
 
 for i, a in ipairs(args) do
   if a == "skip" then
@@ -71,6 +77,8 @@ for i, a in ipairs(args) do
     lava = false
   elseif a == "nether" then
     nether = true
+  elseif a == "vein" then
+    veinMode = true
   end
 end
 
@@ -164,6 +172,31 @@ local function checkLava()
   dig.blockLavaDown()
 end
 
+-- Chases any ore vein poking through a wall/floor/ceiling of the
+-- excavated volume, at every cell, so a vein doesn't get left half-
+-- mined right at the quarry's boundary. dig.mineVein() is a no-op
+-- (returns immediately) when the checked direction isn't ore, and
+-- always returns the turtle to its original position/facing -- so
+-- this can safely run unconditionally every cell without disturbing
+-- the normal sweep's position bookkeeping.
+local function checkVein()
+  if not veinMode then
+    return
+  end
+
+  local facing = dig.getr()
+
+  dig.mineVein("up")
+  dig.mineVein("down")
+
+  dig.gotor((facing + 90) % 360)
+  dig.mineVein("fwd")
+  dig.gotor((facing - 90) % 360)
+  dig.mineVein("fwd")
+
+  dig.gotor(facing)
+end
+
 -- lib/job.lua's checkProgress() already handles the dug-count milestone
 -- (flex.send + broadcast) and the time-throttled heartbeat otherwise;
 -- quarry additionally wants a y-depth milestone, which is specific
@@ -210,6 +243,7 @@ local function mineColumn(x, zFrom, zTo, zStep)
   local z = zFrom
   while true do
     checkLava()
+    checkVein()
     checkProgress()
     j.checkHalt()
     j.checkFuel()

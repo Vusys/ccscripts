@@ -36,11 +36,17 @@ Example: `pkg install tunnel fasttunnel`.
 
 ## Programs
 
-- **quarry** `<length> [width] [depth] [skip <N>] [dump] [nolava] [nether]`
+- **quarry** `<length> [width] [depth] [skip <N>] [dump] [nolava] [nether] [vein]`
   Zigzag strip-mines a rectangular volume, layer by layer. Survives a
   reboot mid-job. `dump` auto-empties into a chest when full; `nolava`
   disables sealing lava at the quarry's edges; `nether` reserves more
-  building-block stock for that.
+  building-block stock for that; `vein` chases any ore vein visible
+  through the excavated volume's walls/floor/ceiling before continuing
+  the sweep, instead of leaving it half-mined at the boundary.
+- **treefarm** `<rows> <cols> [passes <N>] [dump]`
+  Tends a grid of tree plots forever (or for `passes` cycles): fells
+  any mature tree, replants bare ground, leaves an already-growing
+  sapling alone. Reboot-resumable the same way quarry is.
 - **tunnel** `<width> <height> <length> [return]`
   Digs a rectangular tunnel, `width` must be odd. `return` sends it
   back to the start when done.
@@ -107,6 +113,7 @@ lib/
                           every job-shaped program gets it for free
 programs/
   quarry.lua             -- see Programs, below
+  treefarm.lua
   tunnel.lua
   fasttunnel.lua
   dig-cli.lua
@@ -128,6 +135,10 @@ check exactly how a CC:Tweaked API behaves instead of guessing.
 
 ## Roadmap
 
-More automation is the long-term goal -- e.g. autonomous tree-farming
-turtles -- added as new `manifest.json` entries without any change to
-the installer/pkg architecture.
+More automation is the long-term goal, added as new `manifest.json`
+entries without any change to the installer/pkg architecture --
+`treefarm` (tree farming) and vein-following mining are the first of
+these, built on a shared `lib/job.lua` scaffold so every future job-
+shaped program (crop farming, construction from a schematic, item
+logistics, ...) gets fuel/inventory/pause housekeeping and a
+`monitor`-visible status heartbeat for free.

@@ -28,10 +28,10 @@
       "category": "api",
       "path": "lib/dig.lua",
       "install_as": "dig.lua",
-      "version": "1.0.1",
+      "version": "1.1.0",
       "depends": ["flex"],
       "first_run": true,
-      "description": "Motion, mining, and crash-recovery API."
+      "description": "Motion, mining, and crash-recovery API. Includes vein-following mining (mineVein)."
     },
     {
       "name": "job",
@@ -49,10 +49,10 @@
       "path": "config/dig_options.default.cfg",
       "install_as": "dig_options.cfg",
       "install_mode": "if-missing",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "depends": [],
       "first_run": true,
-      "description": "Default block classification lists for dig."
+      "description": "Default block classification lists for dig, including the ores list for mineVein."
     },
     {
       "name": "flex-options-default",
@@ -80,17 +80,17 @@
       "category": "program",
       "path": "programs/quarry.lua",
       "install_as": "quarry.lua",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "depends": ["job", "dig", "flex"],
       "first_run": true,
-      "description": "Zigzag strip-mining program, broadcasts live status for monitor."
+      "description": "Zigzag strip-mining program, broadcasts live status for monitor. Optional vein-following (vein flag)."
     },
     {
       "name": "monitor",
       "category": "program",
       "path": "programs/monitor.lua",
       "install_as": "monitor.lua",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "depends": ["flex"],
       "first_run": false,
       "description": "Wireless fleet dashboard for any lib/job.lua-based program."
@@ -114,6 +114,16 @@
       "depends": ["dig", "flex"],
       "first_run": false,
       "description": "Speed-optimized 3x3 tunnel digger."
+    },
+    {
+      "name": "treefarm",
+      "category": "program",
+      "path": "programs/treefarm.lua",
+      "install_as": "treefarm.lua",
+      "version": "1.0.0",
+      "depends": ["job", "dig", "flex"],
+      "first_run": false,
+      "description": "Tends a grid of tree plots forever: fells mature trees, replants bare ground."
     }
   ]
 }

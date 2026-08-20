@@ -59,9 +59,14 @@ local DEFAULTS = {
     "limestone", "soapstone", "dolomite", "gabbro", "scoria",
   },
   fluids = { "water", "lava", "acid", "poison", "sewage", "sludge", "blood" },
+  -- "ore" alone (substring match) covers every vanilla ore name
+  -- (iron_ore, deepslate_iron_ore, nether_quartz_ore, redstone_ore,
+  -- ...) without needing to enumerate each one; ancient_debris is
+  -- listed separately since its name doesn't contain "ore".
+  ores = { "ore", "ancient_debris" },
 }
 
-local SECTION_KEYS = { "outputblocks", "blacklist", "buildingblocks", "dumplist", "fluids" }
+local SECTION_KEYS = { "outputblocks", "blacklist", "buildingblocks", "dumplist", "fluids", "ores" }
 local DUMPLIST_KEY = "dumplist"
 
 local options = {}
@@ -921,6 +926,122 @@ M.gotoy = gotoy
 M.gotox = gotox
 M.gotoz = gotoz
 M.goto = gotoLocation
+
+-- ===========================================================================
+-- Vein-following mining: when a strip-mining program (quarry.lua,
+-- tunnel.lua, ...) walks past an ore block, mineVein() follows every
+-- block connected to it (6-connectivity: fwd/back/left/right/up/down,
+-- matched against the "ores" dig_options.cfg list -- see DEFAULTS.ores
+-- above) before returning to the exact position and facing the turtle
+-- called it from, so the caller's own position bookkeeping never needs
+-- to know a detour happened.
+--
+-- Recursive rather than an explicit worklist: real ore veins are small
+-- (a handful to a few dozen blocks), well within a safe call-stack
+-- depth, and the recursive shape is what makes "explore, then
+-- backtrack exactly one step" straightforward -- each recursive call
+-- corresponds to exactly one physical move in and, on return, one move
+-- back out. MAX_VEIN_BLOCKS is a defensive cap in case an overly broad
+-- "ores" list (or an unusually large real vein) would otherwise have
+-- this wander far from the caller's original path.
+-- ===========================================================================
+
+local MAX_VEIN_BLOCKS = 64
+
+local function veinKey(x, y, z)
+  return x .. "," .. y .. "," .. z
+end
+
+-- Explores every unvisited ore-matching neighbor of the turtle's
+-- current position, recursing into each and backing out afterward.
+-- Always leaves the turtle back at the position/facing it was called
+-- with.
+local function exploreVein(visited)
+  visited[veinKey(xdist, ydist, zdist)] = true
+  if visited.count >= MAX_VEIN_BLOCKS then
+    return
+  end
+
+  if flex.isBlock(options.ores, "up") and not visited[veinKey(xdist, ydist + 1, zdist)] then
+    if up(1) then
+      visited.count = visited.count + 1
+      exploreVein(visited)
+      down(1)
+    end
+  end
+
+  if flex.isBlock(options.ores, "down") and not visited[veinKey(xdist, ydist - 1, zdist)] then
+    if down(1) then
+      visited.count = visited.count + 1
+      exploreVein(visited)
+      up(1)
+    end
+  end
+
+  -- Absolute headings, not left()/right() turns relative to whatever
+  -- the turtle happens to be facing -- gotor() already knows how to
+  -- get from any heading to any other in at most one turn.
+  local startR = rdist
+  for _, r in ipairs({ 0, 90, 180, 270 }) do
+    gotor(r)
+    local nx, nz = xdist, zdist
+    if r == 0 then nz = nz + 1
+    elseif r == 90 then nx = nx + 1
+    elseif r == 180 then nz = nz - 1
+    else nx = nx - 1 end
+
+    if flex.isBlock(options.ores, "fwd") and not visited[veinKey(nx, ydist, nz)] then
+      if fwd(1) then
+        visited.count = visited.count + 1
+        exploreVein(visited)
+        -- The space behind is where we just came from -- always
+        -- empty, so turtle.back() (what back(1) reduces to here)
+        -- returns without needing to turn around first.
+        back(1)
+      end
+    end
+  end
+  gotor(startR)
+end
+
+-- dir: which direction to start from (default "fwd", i.e. whatever the
+-- turtle currently faces) -- a no-op returning true if that block
+-- isn't ore. Returns false (leaving the turtle wherever movement
+-- actually stopped) if digging/moving into the vein got stuck partway
+-- through, same convention as fwd()/up()/down().
+local function mineVein(dir)
+  dir = dir or "fwd"
+  if not flex.isBlock(options.ores, dir) then
+    return true
+  end
+
+  local moved
+  if dir == "up" then
+    moved = up(1)
+  elseif dir == "down" then
+    moved = down(1)
+  else
+    moved = fwd(1)
+  end
+  if not moved then
+    return false
+  end
+
+  exploreVein({ count = 1 })
+
+  local backOK
+  if dir == "up" then
+    backOK = down(1)
+  elseif dir == "down" then
+    backOK = up(1)
+  else
+    backOK = back(1)
+  end
+
+  return backOK and not stuck
+end
+
+M.mineVein = mineVein
 
 -- ===========================================================================
 -- Dump list management + dumping.
