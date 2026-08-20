@@ -62,6 +62,7 @@ local STATE_COLOR = {
   working = colors.lime,
   mining = colors.lime,
   farming = colors.lime,
+  building = colors.lime,
   paused = colors.yellow,
   refueling = colors.orange,
   dumping = colors.orange,

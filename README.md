@@ -47,6 +47,16 @@ Example: `pkg install tunnel fasttunnel`.
   Tends a grid of tree plots forever (or for `passes` cycles): fells
   any mature tree, replants bare ground, leaves an already-growing
   sapling alone. Reboot-resumable the same way quarry is.
+- **farm** `<rows> <cols> [passes <N>] [dump]`
+  Tends a grid of crop plots (wheat/carrots/potatoes/beetroot/nether
+  wart) forever (or for `passes` cycles): harvests and replants
+  anything fully grown, leaves an immature crop alone.
+- **build** `<schematic.json> [dump]`
+  Constructs a structure from a schematic JSON file already on the
+  turtle, pulling each block by name from the inventory. Missing
+  materials are skipped and reported at the end instead of blocking
+  the build. See `programs/build.lua`'s header comment for the
+  schematic format.
 - **tunnel** `<width> <height> <length> [return]`
   Digs a rectangular tunnel, `width` must be odd. `return` sends it
   back to the start when done.
@@ -114,6 +124,8 @@ lib/
 programs/
   quarry.lua             -- see Programs, below
   treefarm.lua
+  farm.lua
+  build.lua
   tunnel.lua
   fasttunnel.lua
   dig-cli.lua
@@ -137,8 +149,8 @@ check exactly how a CC:Tweaked API behaves instead of guessing.
 
 More automation is the long-term goal, added as new `manifest.json`
 entries without any change to the installer/pkg architecture --
-`treefarm` (tree farming) and vein-following mining are the first of
-these, built on a shared `lib/job.lua` scaffold so every future job-
-shaped program (crop farming, construction from a schematic, item
-logistics, ...) gets fuel/inventory/pause housekeeping and a
+`treefarm`/`farm`/`build` and vein-following mining are the first of
+these, all built on a shared `lib/job.lua` scaffold so every future
+job-shaped program (item logistics between turtles, a wireless relay
+for range extension, ...) gets fuel/inventory/pause housekeeping and a
 `monitor`-visible status heartbeat for free.

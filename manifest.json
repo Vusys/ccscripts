@@ -90,7 +90,7 @@
       "category": "program",
       "path": "programs/monitor.lua",
       "install_as": "monitor.lua",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "depends": ["flex"],
       "first_run": false,
       "description": "Wireless fleet dashboard for any lib/job.lua-based program."
@@ -124,6 +124,26 @@
       "depends": ["job", "dig", "flex"],
       "first_run": false,
       "description": "Tends a grid of tree plots forever: fells mature trees, replants bare ground."
+    },
+    {
+      "name": "farm",
+      "category": "program",
+      "path": "programs/farm.lua",
+      "install_as": "farm.lua",
+      "version": "1.0.0",
+      "depends": ["job", "dig", "flex"],
+      "first_run": false,
+      "description": "Tends a grid of crop plots forever: harvests and replants anything fully grown."
+    },
+    {
+      "name": "build",
+      "category": "program",
+      "path": "programs/build.lua",
+      "install_as": "build.lua",
+      "version": "1.0.0",
+      "depends": ["job", "dig", "flex"],
+      "first_run": false,
+      "description": "Constructs a structure from a JSON schematic file, pulling blocks by name from the inventory."
     }
   ]
 }
