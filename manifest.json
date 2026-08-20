@@ -90,7 +90,7 @@
       "category": "program",
       "path": "programs/monitor.lua",
       "install_as": "monitor.lua",
-      "version": "1.1.2",
+      "version": "1.1.3",
       "depends": ["flex"],
       "first_run": false,
       "description": "Wireless fleet dashboard for any lib/job.lua-based program."
@@ -144,6 +144,26 @@
       "depends": ["job", "dig", "flex"],
       "first_run": false,
       "description": "Constructs a structure from a JSON schematic file, pulling blocks by name from the inventory."
+    },
+    {
+      "name": "bridge",
+      "category": "program",
+      "path": "programs/bridge.lua",
+      "install_as": "bridge.lua",
+      "version": "1.0.0",
+      "depends": ["job", "dig", "flex"],
+      "first_run": false,
+      "description": "Walks forward in a straight line, filling in the floor wherever it isn't solid."
+    },
+    {
+      "name": "well",
+      "category": "program",
+      "path": "programs/well.lua",
+      "install_as": "well.lua",
+      "version": "1.0.0",
+      "depends": ["job", "dig", "flex"],
+      "first_run": false,
+      "description": "Digs straight down until bedrock or a configured max depth."
     }
   ]
 }

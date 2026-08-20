@@ -57,6 +57,14 @@ Example: `pkg install tunnel fasttunnel`.
   materials are skipped and reported at the end instead of blocking
   the build. See `programs/build.lua`'s header comment for the
   schematic format.
+- **bridge** `<length> [dump]`
+  Walks forward in a straight line, placing a block underneath itself
+  wherever the ground isn't solid -- crosses a gap, lava, or water.
+  Stays at the far end when done.
+- **well** `[maxDepth] [dump] [return]`
+  Digs straight down until bedrock (or `maxDepth`, if given).
+  `return` ascends back to the start when done instead of staying at
+  the bottom.
 - **tunnel** `<width> <height> <length> [return]`
   Digs a rectangular tunnel, `width` must be odd. `return` sends it
   back to the start when done.
@@ -126,6 +134,8 @@ programs/
   treefarm.lua
   farm.lua
   build.lua
+  bridge.lua
+  well.lua
   tunnel.lua
   fasttunnel.lua
   dig-cli.lua
