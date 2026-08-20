@@ -295,7 +295,23 @@ end
 
 -- Sweeps Z from zFrom to zTo (inclusive, stepping by zStep) at column x.
 local function mineColumn(x, zFrom, zTo, zStep)
+  -- Get to the exact start of this column first -- gotox() alone isn't
+  -- enough: it only moves in X, so without this the sweep below starts
+  -- from wherever the turtle happens to physically be (correct only for
+  -- the very first column ever, by coincidence), not from zFrom.
   if not dig.gotox(x) then
+    return false
+  end
+  if not dig.gotoz(zFrom) then
+    return false
+  end
+  -- gotox()/gotoz() only turn to face the axis they actually have to
+  -- move along, and leave the turtle facing however it last did
+  -- otherwise -- fwd() below moves in whatever direction the turtle
+  -- currently faces, not "along Z" by assumption, so this must
+  -- explicitly (re)face Z before the sweep starts regardless. Skipping
+  -- this turned some columns into X moves instead of Z moves.
+  if not dig.gotor(zStep > 0 and 0 or 180) then
     return false
   end
 
@@ -371,7 +387,11 @@ end
 
 if not dig.isStuck() then
   local y = dig.gety()
-  while y >= -depth do
+  -- `depth` layers total, measured from the turtle's starting Y (0):
+  -- y = 0, -1, ..., -(depth-1) -- the floor is -(depth-1), i.e. "while
+  -- y > -depth", not "while y >= -depth" (which would mine one extra
+  -- layer at y = -depth).
+  while y > -depth do
     if not mineLayer(y) then
       break
     end
@@ -379,7 +399,7 @@ if not dig.isStuck() then
       break
     end
     y = y - 1
-    if y >= -depth then
+    if y > -depth then
       if not dig.down(1) then
         break
       end

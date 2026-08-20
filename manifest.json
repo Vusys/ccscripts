@@ -70,7 +70,7 @@
       "category": "program",
       "path": "programs/quarry.lua",
       "install_as": "quarry.lua",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "depends": ["dig", "flex"],
       "first_run": true,
       "description": "Zigzag strip-mining program, broadcasts live status for monitor."
