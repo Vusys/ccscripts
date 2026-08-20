@@ -16,3 +16,7 @@ pkg_config.cfg
 # ARE tracked -- only the flat on-device runtime copies below are ignored.
 dig_options.cfg
 flex_options.cfg
+
+# Local CC:Tweaked API reference, pulled by scripts/fetch-cc-tweaked-reference.sh.
+# Disposable and regenerable -- never commit it, just re-run the script.
+/reference/

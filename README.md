@@ -108,6 +108,15 @@ config/
                               a live, edited config)
 ```
 
+## Development
+
+`scripts/fetch-cc-tweaked-reference.sh` pulls a trimmed local copy of
+[cc-tweaked/CC-Tweaked](https://github.com/cc-tweaked/CC-Tweaked) into
+`reference/cc-tweaked/` (gitignored) -- the actual Lua ROM source,
+Java API implementations, and hand-written docs, with the Gradle/mod-
+loader/rendering/test noise stripped out. Useful any time you need to
+check exactly how a CC:Tweaked API behaves instead of guessing.
+
 ## Roadmap
 
 More automation is the long-term goal -- e.g. autonomous tree-farming
