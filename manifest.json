@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "repo": "vusys/ccscripts",
+  "branch": "main",
+  "entries": [
+    {
+      "name": "pkg",
+      "category": "program",
+      "path": "pkg.lua",
+      "install_as": "pkg.lua",
+      "version": "1.0.0",
+      "depends": [],
+      "first_run": true,
+      "description": "Package manager: install/update/remove scripts from this repo."
+    },
+    {
+      "name": "flex",
+      "category": "api",
+      "path": "flex.lua",
+      "install_as": "flex.lua",
+      "version": "1.0.0",
+      "depends": [],
+      "first_run": true,
+      "description": "Utility API: inventory, wireless comms, colored output, block detection."
+    },
+    {
+      "name": "dig",
+      "category": "api",
+      "path": "dig.lua",
+      "install_as": "dig.lua",
+      "version": "1.0.0",
+      "depends": ["flex"],
+      "first_run": true,
+      "description": "Motion, mining, and crash-recovery API."
+    },
+    {
+      "name": "dig-options-default",
+      "category": "config",
+      "path": "dig_options.default.cfg",
+      "install_as": "dig_options.cfg",
+      "install_mode": "if-missing",
+      "version": "1.0.0",
+      "depends": [],
+      "first_run": true,
+      "description": "Default block classification lists for dig."
+    },
+    {
+      "name": "flex-options-default",
+      "category": "config",
+      "path": "flex_options.default.cfg",
+      "install_as": "flex_options.cfg",
+      "install_mode": "if-missing",
+      "version": "1.0.0",
+      "depends": [],
+      "first_run": true,
+      "description": "Default modem channel / display config for flex."
+    },
+    {
+      "name": "dig-cli",
+      "category": "program",
+      "path": "dig-cli.lua",
+      "install_as": "dig-cli.lua",
+      "version": "1.0.0",
+      "depends": ["dig", "flex"],
+      "first_run": false,
+      "description": "save/load/clear/edit subcommands for dig's state and options file."
+    },
+    {
+      "name": "quarry",
+      "category": "program",
+      "path": "quarry.lua",
+      "install_as": "quarry.lua",
+      "version": "1.0.0",
+      "depends": ["dig", "flex"],
+      "first_run": true,
+      "description": "Zigzag strip-mining program."
+    },
+    {
+      "name": "tunnel",
+      "category": "program",
+      "path": "tunnel.lua",
+      "install_as": "tunnel.lua",
+      "version": "1.0.0",
+      "depends": ["dig", "flex"],
+      "first_run": false,
+      "description": "Digs a rectangular tunnel of a given width/height/length."
+    },
+    {
+      "name": "fasttunnel",
+      "category": "program",
+      "path": "fasttunnel.lua",
+      "install_as": "fasttunnel.lua",
+      "version": "1.0.0",
+      "depends": ["dig", "flex"],
+      "first_run": false,
+      "description": "Speed-optimized 3x3 tunnel digger."
+    }
+  ]
+}
