@@ -1,11 +1,14 @@
 -- monitor.lua
 --
 -- Companion dashboard for anything broadcasting structured status via
--- flex.sendData() -- quarry.lua does, out of the box. Run on any
--- computer with a wireless modem, listening on the same modem_channel
--- as your turtles (flex_options.cfg, default 6464 for everyone). If a
--- "monitor" peripheral is attached, the dashboard renders there instead
--- of the terminal; otherwise it uses the terminal.
+-- lib/job.lua's wireless heartbeat (kind="job_status") -- every
+-- job-shaped program (quarry.lua, treefarm.lua, ...) does, out of the
+-- box, since they all build on the same lib/job.lua scaffold. Run on
+-- any computer with a wireless modem, listening on the same
+-- modem_channel as your turtles (flex_options.cfg, default 6464 for
+-- everyone). If a "monitor" peripheral is attached, the dashboard
+-- renders there instead of the terminal; otherwise it uses the
+-- terminal.
 --
 -- Usage: monitor [timeout]
 --   timeout   seconds of silence before a turtle is shown OFFLINE
@@ -50,7 +53,13 @@ local turtles = {}
 local log = {}
 local LOG_LINES = 6
 
+-- Common vocabulary from lib/job.lua, plus "mining" (quarry's
+-- workingState -- kept as its own entry for a nicer color than the
+-- generic default). Any job kind's workingState not listed here (a
+-- future "farming"/"building"/...) just falls through to the unknown-
+-- state default below rather than needing an entry added here too.
 local STATE_COLOR = {
+  working = colors.lime,
   mining = colors.lime,
   paused = colors.yellow,
   refueling = colors.orange,
@@ -83,6 +92,29 @@ local function formatProgress(t)
     pct = 100
   end
   return dug .. "/" .. t.total .. " (" .. pct .. "%)"
+end
+
+-- Job-specific detail (quarry's length/width/depth/skip, etc.) as a
+-- compact "key=value key=value" line -- sorted so the same job kind
+-- renders in a stable order across broadcasts (and is trivially
+-- testable) instead of whatever order pairs() happens to walk in.
+local function formatExtra(t)
+  if type(t.extra) ~= "table" then
+    return nil
+  end
+  local keys = {}
+  for k in pairs(t.extra) do
+    keys[#keys + 1] = k
+  end
+  table.sort(keys)
+  if #keys == 0 then
+    return nil
+  end
+  local parts = {}
+  for _, k in ipairs(keys) do
+    parts[#parts + 1] = tostring(k) .. "=" .. tostring(t.extra[k])
+  end
+  return table.concat(parts, " ")
 end
 
 -- ===========================================================================
@@ -123,7 +155,8 @@ local function render()
 
     term.setCursorPos(1, row)
     local name = flex.escapeMarkup(t.label or ("turtle #" .. id))
-    flex.printColors("#F" .. name .. " #8[#" .. hex .. state .. "#8]")
+    local jobLabel = flex.escapeMarkup(t.job or "?")
+    flex.printColors("#F" .. name .. " #7(" .. jobLabel .. ") #8[#" .. hex .. state .. "#8]")
     row = row + 1
 
     if row < logStart then
@@ -132,6 +165,13 @@ local function render()
         "  #8pos (#F" .. t.x .. "#8,#F" .. t.y .. "#8,#F" .. t.z .. "#8) "
           .. "fuel #F" .. formatFuel(t) .. " #8dug #F" .. formatProgress(t)
       )
+      row = row + 1
+    end
+
+    local extraLine = formatExtra(t)
+    if extraLine and row < logStart then
+      term.setCursorPos(1, row)
+      flex.printColors("  #8" .. extraLine)
       row = row + 1
     end
   end
@@ -149,16 +189,16 @@ end
 render()
 
 -- ===========================================================================
--- Event loop. Any "quarry_status"-kind table becomes a dashboard row;
--- any plain string becomes a log line; anything else is ignored. Press
--- Q to quit.
+-- Event loop. Any "job_status"-kind table becomes a dashboard row; any
+-- plain string becomes a log line; anything else is ignored. Press Q
+-- to quit.
 -- ===========================================================================
 
 while true do
   local event, a, b, c, message = os.pullEvent()
 
   if event == "modem_message" then
-    if type(message) == "table" and message.kind == "quarry_status" then
+    if type(message) == "table" and message.kind == "job_status" then
       message.lastSeen = os.epoch("utc")
       turtles[message.id] = message
       render()

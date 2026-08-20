@@ -32,6 +32,7 @@
 
 local dig = require("dig")
 local flex = require("flex")
+local job = require("job")
 
 local WORLD_HEIGHT = 384
 
@@ -108,70 +109,30 @@ flex.send(
 )
 
 -- ===========================================================================
--- Wireless status broadcasting -- a structured heartbeat for a companion
--- program like programs/monitor.lua to consume, distinct from the
--- human-readable flex.send() messages above (which are for a person
--- watching a terminal, not for programmatic parsing). A no-op if there's
--- no modem, so this is always safe to call.
+-- Job scaffold: fuel/inventory/pause housekeeping and the wireless status
+-- heartbeat for a companion program like programs/monitor.lua, shared with
+-- every other job-shaped program via lib/job.lua. A no-op broadcast if
+-- there's no modem, so this is always safe to call.
 -- ===========================================================================
 
 local totalToMine = length * width * math.max(depth - skip, 1)
-local lastBroadcast = 0
-local BROADCAST_INTERVAL_MS = 10000 -- keeps "last seen" fresh on the
-                                     -- monitor even when dug/Y aren't
-                                     -- changing (paused, refueling, ...)
 
-local function broadcastStatus(state)
-  if not flex.hasWirelessModem() then
-    return
-  end
-  lastBroadcast = os.epoch("utc")
-  flex.sendData({
-    kind = "quarry_status",
-    id = os.getComputerID(),
-    label = os.getComputerLabel(),
-    state = state,
-    x = dig.getx(),
-    y = dig.gety(),
-    z = dig.getz(),
-    r = dig.getr(),
-    fuel = turtle.getFuelLevel(),
-    fuelLimit = turtle.getFuelLimit(),
-    dug = dig.getdug(),
-    total = totalToMine,
-    length = length,
-    width = width,
-    depth = depth,
-    skip = skip,
-  })
-end
+local j = job.new({
+  kind = "quarry",
+  workingState = "mining",
+  dump = dodumps,
+  fuelEstimate = function() return (length + width + depth + 1) * 2 end,
+  total = totalToMine,
+  extra = function()
+    return { length = length, width = width, depth = depth, skip = skip }
+  end,
+})
 
--- Time-throttled variant for call sites that run on every cell -- avoids
--- flooding the channel while still keeping the heartbeat alive.
-local function maybeBroadcastStatus(state)
-  if os.epoch("utc") - lastBroadcast >= BROADCAST_INTERVAL_MS then
-    broadcastStatus(state)
-  end
-end
-
-broadcastStatus("mining")
+j.broadcast("mining")
 
 -- ===========================================================================
 -- Housekeeping run at every mined cell.
 -- ===========================================================================
-
-local function gotoBase()
-  local saved = dig.location()
-  dig.gotoy(0)
-  dig.gotox(0)
-  dig.gotoz(0)
-  dig.gotor(180)
-  return saved
-end
-
-local function returnFromBase(saved)
-  dig.goto(saved)
-end
 
 local function checkLava()
   if not lava then
@@ -203,90 +164,21 @@ local function checkLava()
   dig.blockLavaDown()
 end
 
-local lastReportedDug = dig.getdug()
+-- lib/job.lua's checkProgress() already handles the dug-count milestone
+-- (flex.send + broadcast) and the time-throttled heartbeat otherwise;
+-- quarry additionally wants a y-depth milestone, which is specific
+-- enough to this program (not every job descends through a fixed
+-- depth) that it stays local rather than living in job.lua.
 local lastReportedY = dig.gety()
 
 local function checkProgress()
-  local milestoneHit = false
-  local dug = dig.getdug()
-  if dug - lastReportedDug >= 1000 then
-    lastReportedDug = dug
-    flex.send("#8Progress: #F" .. dug .. "#8 blocks dug (y=#F" .. dig.gety() .. "#8)")
-    milestoneHit = true
-  end
   local y = dig.gety()
   if lastReportedY - y >= 5 then
     lastReportedY = y
     flex.send("#8Progress: #Fy=" .. y)
-    milestoneHit = true
+    j.broadcast("mining")
   end
-
-  if milestoneHit then
-    broadcastStatus("mining")
-  else
-    maybeBroadcastStatus("mining")
-  end
-end
-
-local function checkFuel()
-  local level = turtle.getFuelLevel()
-  if level == "unlimited" then
-    return
-  end
-  local estimate = (length + width + depth + 1) * 2
-  if level < estimate then
-    broadcastStatus("refueling")
-    local saved = gotoBase()
-    dig.dropNotFuel()
-    turtle.suckUp()
-    dig.refuel(estimate)
-    returnFromBase(saved)
-    broadcastStatus("mining")
-  end
-end
-
-local function checkInv()
-  if turtle.getItemCount(16) > 0 then
-    if dodumps then
-      dig.right(2)
-      dig.doDump()
-      dig.left(2)
-    end
-    if turtle.getItemCount(14) > 0 then
-      broadcastStatus("dumping")
-      local saved = gotoBase()
-      dig.dropNotFuel()
-      returnFromBase(saved)
-      broadcastStatus("mining")
-    end
-  end
-end
-
-local function checkHalt()
-  if not rs.getInput("top") then
-    return
-  end
-
-  flex.send("Paused. ENTER to resume, SPACE to return to base and wait.", colors.yellow)
-  broadcastStatus("paused")
-  local saved = dig.location()
-  local wentToBase = false
-
-  while rs.getInput("top") do
-    local key = flex.getKey()
-    if key == keys.space and not wentToBase then
-      gotoBase()
-      wentToBase = true
-    elseif key == keys.enter then
-      break
-    end
-  end
-
-  if wentToBase then
-    returnFromBase(saved)
-  end
-  flex.send("Resuming.", colors.lime)
-  broadcastStatus("mining")
+  j.checkProgress()
 end
 
 -- ===========================================================================
@@ -319,9 +211,9 @@ local function mineColumn(x, zFrom, zTo, zStep)
   while true do
     checkLava()
     checkProgress()
-    checkHalt()
-    checkFuel()
-    checkInv()
+    j.checkHalt()
+    j.checkFuel()
+    j.checkInv()
     if dig.isStuck() then
       return false
     end
@@ -375,8 +267,8 @@ end
 -- Pre-descend past any skip offset. Idempotent: a resumed turtle already
 -- below -skip just falls through immediately.
 while dig.gety() > -skip do
-  checkFuel()
-  maybeBroadcastStatus("mining")
+  j.checkFuel()
+  j.heartbeat("mining")
   if not dig.down(1) then
     break
   end
@@ -434,10 +326,10 @@ if stoppedEarly then
       .. ") after #F" .. dig.getdug() .. "#E blocks dug.",
     colors.red
   )
-  broadcastStatus("stuck")
+  j.broadcast("stuck")
 else
   flex.send("#AQuarry complete! #F" .. dig.getdug() .. "#A blocks dug.", colors.lime)
-  broadcastStatus("done")
+  j.broadcast("done")
 end
 
 dig.saveClear()

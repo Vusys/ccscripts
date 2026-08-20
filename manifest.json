@@ -34,6 +34,16 @@
       "description": "Motion, mining, and crash-recovery API."
     },
     {
+      "name": "job",
+      "category": "api",
+      "path": "lib/job.lua",
+      "install_as": "job.lua",
+      "version": "1.0.0",
+      "depends": ["dig", "flex"],
+      "first_run": true,
+      "description": "Shared supervised-job scaffold (fuel/inventory/pause housekeeping, wireless status heartbeat) for long-running programs."
+    },
+    {
       "name": "dig-options-default",
       "category": "config",
       "path": "config/dig_options.default.cfg",
@@ -70,8 +80,8 @@
       "category": "program",
       "path": "programs/quarry.lua",
       "install_as": "quarry.lua",
-      "version": "1.1.1",
-      "depends": ["dig", "flex"],
+      "version": "1.2.0",
+      "depends": ["job", "dig", "flex"],
       "first_run": true,
       "description": "Zigzag strip-mining program, broadcasts live status for monitor."
     },
@@ -80,10 +90,10 @@
       "category": "program",
       "path": "programs/monitor.lua",
       "install_as": "monitor.lua",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "depends": ["flex"],
       "first_run": false,
-      "description": "Wireless dashboard for quarry (or anything using flex.sendData())."
+      "description": "Wireless fleet dashboard for any lib/job.lua-based program."
     },
     {
       "name": "tunnel",

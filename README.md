@@ -61,17 +61,21 @@ Example: `pkg install tunnel fasttunnel`.
 
 ## Wireless status
 
-`quarry` broadcasts a small status update (position, fuel, dug count,
-state -- mining/paused/refueling/dumping/done/stuck) on state changes
+Every job-shaped program (`quarry`, and anything else built on
+`lib/job.lua`) broadcasts a small status update -- job kind, position,
+fuel, dug count, state (its own working state, e.g. `mining`, plus the
+common `paused`/`refueling`/`dumping`/`done`/`stuck`), and any job-
+specific detail (quarry's length/width/depth/skip) -- on state changes
 and periodically while running, in addition to the human-readable
 pause/complete/error messages it's always sent. `monitor` listens for
-these and renders a live per-turtle dashboard. Both just need
+these and renders a live per-turtle dashboard, with no changes needed
+for a new job kind to show up on it. Both just need
 `flex_options.cfg`'s `modem_channel` to match (it does by default).
 
 This uses `flex.sendData(table)`, not `flex.send(string)` -- see
 Architecture below. Any program can call it to show up on `monitor`;
 the only requirement is a `kind` field in the table so a listener can
-tell message shapes apart (`monitor` looks for `kind == "quarry_status"`
+tell message shapes apart (`monitor` looks for `kind == "job_status"`
 specifically, but ignores anything else it doesn't recognize rather
 than erroring on it).
 
@@ -96,6 +100,11 @@ lib/
                           (require("dig")): coordinate-tracked movement,
                           dig-through-obstacle retry with a stuck
                           timeout, fuel management, save/resume state
+  job.lua                -- shared supervised-job scaffold
+                          (require("job")): fuel/inventory/pause
+                          housekeeping and the wireless status
+                          heartbeat, factored out of quarry.lua so
+                          every job-shaped program gets it for free
 programs/
   quarry.lua             -- see Programs, below
   tunnel.lua
