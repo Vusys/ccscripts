@@ -1,0 +1,18 @@
+# Runtime-generated state written by the turtle on-device.
+# These are produced by dig.lua/flex.lua/pkg.lua while running and are
+# never authored by hand, so they must never be committed.
+dig_save.cfg
+dig_save_*.cfg
+dig_fuel.cfg
+log.txt
+startup.lua
+startup_*.lua
+pkg_installed.json
+pkg_manifest_cache.json
+pkg_config.cfg
+
+# Live, possibly user-edited config. The *shipped* defaults these are
+# seeded from (dig_options.default.cfg / flex_options.default.cfg) ARE
+# tracked -- only the runtime copies below are ignored.
+dig_options.cfg
+flex_options.cfg
