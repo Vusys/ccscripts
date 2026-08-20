@@ -15,8 +15,7 @@ from GitHub instead of copying files into your save by hand.
 On a turtle or computer:
 
 ```
-wget https://raw.githubusercontent.com/vusys/ccscripts/main/install.lua install
-install
+wget run https://raw.githubusercontent.com/vusys/ccscripts/main/install.lua
 ```
 
 This downloads `pkg.lua` (the package manager) along with `dig.lua`,

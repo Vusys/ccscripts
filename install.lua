@@ -2,8 +2,7 @@
 --
 -- Bootstrap. Run this once via wget, then let pkg.lua take over:
 --
---   wget https://raw.githubusercontent.com/vusys/ccscripts/main/install.lua install
---   install
+--   wget run https://raw.githubusercontent.com/vusys/ccscripts/main/install.lua
 --
 -- Deliberately minimal -- this is the one file you run before there's
 -- any reason to trust it, so it does the least possible amount of
