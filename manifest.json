@@ -18,10 +18,10 @@
       "category": "api",
       "path": "lib/flex.lua",
       "install_as": "flex.lua",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "depends": [],
       "first_run": true,
-      "description": "Utility API: inventory, wireless comms, colored output, block detection."
+      "description": "Utility API: inventory, wireless comms (send + sendData), colored output, block detection."
     },
     {
       "name": "dig",
@@ -70,10 +70,20 @@
       "category": "program",
       "path": "programs/quarry.lua",
       "install_as": "quarry.lua",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "depends": ["dig", "flex"],
       "first_run": true,
-      "description": "Zigzag strip-mining program."
+      "description": "Zigzag strip-mining program, broadcasts live status for monitor."
+    },
+    {
+      "name": "monitor",
+      "category": "program",
+      "path": "programs/monitor.lua",
+      "install_as": "monitor.lua",
+      "version": "1.0.0",
+      "depends": ["flex"],
+      "first_run": false,
+      "description": "Wireless dashboard for quarry (or anything using flex.sendData())."
     },
     {
       "name": "tunnel",

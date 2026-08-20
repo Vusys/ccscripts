@@ -175,6 +175,18 @@ end
 -- doesn't support.
 -- ===========================================================================
 
+-- Escapes a string for safe embedding in a printColors()/send()-formatted
+-- message: any string that ISN'T a literal you wrote yourself (a
+-- computer label, in particular) needs this before being concatenated
+-- in, since a literal "#" immediately followed by a hex digit -- entirely
+-- plausible in free-form text -- would otherwise be misread as a
+-- color-switch escape instead of printed as-is.
+local function escapeMarkup(s)
+  return (tostring(s):gsub("#", "##"))
+end
+
+M.escapeMarkup = escapeMarkup
+
 local function parseColorRuns(message, startColor)
   local runs = {}
   local color = startColor
@@ -298,12 +310,30 @@ end
 M.printColors = printColors
 
 -- ===========================================================================
--- Wireless status broadcasting. The wire format is a plain, human-readable
--- string with the same inline "#X" markup as printColors -- this channel
--- is a monitoring/log broadcast for a human watching another computer, not
--- a structured RPC protocol. (A future need for structured data would be a
--- new function, e.g. sendData(), rather than changing this contract.)
+-- Wireless status broadcasting.
+--
+-- send() transmits a plain, human-readable string with the same inline
+-- "#X" markup as printColors -- meant for a person watching another
+-- computer's terminal, echoed locally and logged to log.txt.
+--
+-- sendData() transmits a raw Lua table instead (CC:Tweaked's modem
+-- delivers it back out as a table on the other end, no serialization
+-- needed) -- meant for a companion program like programs/monitor.lua to
+-- consume programmatically. It is not echoed or logged, since it's
+-- meant to be called often (a status heartbeat), not as a one-off
+-- human-facing event.
 -- ===========================================================================
+
+local function getModemChannel()
+  return modemChannel
+end
+
+local function hasWirelessModem()
+  return hasModem
+end
+
+M.getModemChannel = getModemChannel
+M.hasWirelessModem = hasWirelessModem
 
 local function send(message, textColor)
   textColor = textColor or colors.white
@@ -326,7 +356,7 @@ local function send(message, textColor)
     local id = "#" .. getHex(nameColor) .. tostring(os.getComputerID())
     local label = os.getComputerLabel()
     if label then
-      id = id .. "#0|#" .. getHex(nameColor) .. label
+      id = id .. "#0|#" .. getHex(nameColor) .. escapeMarkup(label)
     end
     local wireMessage = id .. "#0: #" .. getHex(textColor) .. message
     modem.transmit(modemChannel, modemChannel + 1, wireMessage)
@@ -335,6 +365,21 @@ local function send(message, textColor)
 end
 
 M.send = send
+
+-- data must be a plain table (a "kind" field is a good idea so a
+-- receiver listening for several message shapes can tell them apart --
+-- see programs/quarry.lua and programs/monitor.lua for an example).
+local function sendData(data)
+  if type(data) ~= "table" then
+    error("sendData: data must be a table", 2)
+  end
+  if hasModem then
+    modem.transmit(modemChannel, modemChannel + 1, data)
+    sleep(0.1)
+  end
+end
+
+M.sendData = sendData
 
 -- ===========================================================================
 -- Inventory consolidation.

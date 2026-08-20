@@ -49,6 +49,31 @@ Example: `pkg install tunnel fasttunnel`.
 - **dig-cli** `<save [slot]|load <slot>|clear|edit [dig|flex]|colors>`
   Save/restore a parked job, clear a stuck auto-resume trigger, or edit
   the dig/flex config files.
+- **monitor** `[timeout]`
+  Live wireless dashboard for anything broadcasting status via
+  `flex.sendData()` -- quarry does, out of the box. Run it on any
+  computer with a wireless modem on the same `modem_channel` as your
+  turtles (default 6464 for everyone). If a `monitor` peripheral is
+  attached it renders there; otherwise it uses the terminal. `timeout`
+  is how many seconds of silence before a turtle is shown OFFLINE
+  (default 30). Press `Q` to quit. Not installed by default --
+  `pkg install monitor`.
+
+## Wireless status
+
+`quarry` broadcasts a small status update (position, fuel, dug count,
+state -- mining/paused/refueling/dumping/done/stuck) on state changes
+and periodically while running, in addition to the human-readable
+pause/complete/error messages it's always sent. `monitor` listens for
+these and renders a live per-turtle dashboard. Both just need
+`flex_options.cfg`'s `modem_channel` to match (it does by default).
+
+This uses `flex.sendData(table)`, not `flex.send(string)` -- see
+Architecture below. Any program can call it to show up on `monitor`;
+the only requirement is a `kind` field in the table so a listener can
+tell message shapes apart (`monitor` looks for `kind == "quarry_status"`
+specifically, but ignores anything else it doesn't recognize rather
+than erroring on it).
 
 ## Architecture
 
@@ -76,6 +101,7 @@ programs/
   tunnel.lua
   fasttunnel.lua
   dig-cli.lua
+  monitor.lua
 config/
   dig_options.default.cfg -- shipped defaults, copied to dig_options.cfg
   flex_options.default.cfg   on first install only (pkg won't clobber
