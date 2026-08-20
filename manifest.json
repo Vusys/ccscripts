@@ -16,7 +16,7 @@
     {
       "name": "flex",
       "category": "api",
-      "path": "flex.lua",
+      "path": "lib/flex.lua",
       "install_as": "flex.lua",
       "version": "1.0.0",
       "depends": [],
@@ -26,7 +26,7 @@
     {
       "name": "dig",
       "category": "api",
-      "path": "dig.lua",
+      "path": "lib/dig.lua",
       "install_as": "dig.lua",
       "version": "1.0.0",
       "depends": ["flex"],
@@ -36,7 +36,7 @@
     {
       "name": "dig-options-default",
       "category": "config",
-      "path": "dig_options.default.cfg",
+      "path": "config/dig_options.default.cfg",
       "install_as": "dig_options.cfg",
       "install_mode": "if-missing",
       "version": "1.0.0",
@@ -47,7 +47,7 @@
     {
       "name": "flex-options-default",
       "category": "config",
-      "path": "flex_options.default.cfg",
+      "path": "config/flex_options.default.cfg",
       "install_as": "flex_options.cfg",
       "install_mode": "if-missing",
       "version": "1.0.0",
@@ -58,7 +58,7 @@
     {
       "name": "dig-cli",
       "category": "program",
-      "path": "dig-cli.lua",
+      "path": "programs/dig-cli.lua",
       "install_as": "dig-cli.lua",
       "version": "1.0.0",
       "depends": ["dig", "flex"],
@@ -68,7 +68,7 @@
     {
       "name": "quarry",
       "category": "program",
-      "path": "quarry.lua",
+      "path": "programs/quarry.lua",
       "install_as": "quarry.lua",
       "version": "1.0.0",
       "depends": ["dig", "flex"],
@@ -78,7 +78,7 @@
     {
       "name": "tunnel",
       "category": "program",
-      "path": "tunnel.lua",
+      "path": "programs/tunnel.lua",
       "install_as": "tunnel.lua",
       "version": "1.0.0",
       "depends": ["dig", "flex"],
@@ -88,7 +88,7 @@
     {
       "name": "fasttunnel",
       "category": "program",
-      "path": "fasttunnel.lua",
+      "path": "programs/fasttunnel.lua",
       "install_as": "fasttunnel.lua",
       "version": "1.0.0",
       "depends": ["dig", "flex"],

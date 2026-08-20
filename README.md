@@ -52,21 +52,35 @@ Example: `pkg install tunnel fasttunnel`.
 
 ## Architecture
 
-- **flex.lua** -- utility API (`require("flex")`): inventory
-  consolidation, wireless status broadcasting, colored terminal output
-  (`#X` inline hex color codes), block/item classification helpers.
-- **dig.lua** -- motion, mining, and crash-recovery API
-  (`require("dig")`): coordinate-tracked movement, dig-through-obstacle
-  retry with a stuck timeout, fuel management, and save/resume state so
-  a program built on it survives a reboot.
-- **quarry.lua / tunnel.lua / fasttunnel.lua** -- programs built on
-  `dig` + `flex`.
-- **pkg.lua / install.lua / manifest.json** -- the install/update
-  mechanism described above.
+This repo is organized into folders, but everything installs **flat**
+into one directory on the turtle (`manifest.json` maps each repo path
+to a flat on-device filename) -- turtles resolve `require()` relative
+to the requiring program's own directory, so a flat install just works
+without any `package.path` setup.
 
-Everything installs flat into one directory (turtles resolve
-`require()` relative to the requiring program's own directory, so this
-just works without any `package.path` setup).
+```
+install.lua        -- bootstrap, wget'd once
+pkg.lua             -- package manager, installed by install.lua
+manifest.json         -- source of truth for what pkg can install
+lib/
+  flex.lua             -- utility API (require("flex")): inventory
+                          consolidation, wireless status broadcasting,
+                          colored terminal output (#X inline hex color
+                          codes), block/item classification helpers
+  dig.lua               -- motion, mining, and crash-recovery API
+                          (require("dig")): coordinate-tracked movement,
+                          dig-through-obstacle retry with a stuck
+                          timeout, fuel management, save/resume state
+programs/
+  quarry.lua             -- see Programs, below
+  tunnel.lua
+  fasttunnel.lua
+  dig-cli.lua
+config/
+  dig_options.default.cfg -- shipped defaults, copied to dig_options.cfg
+  flex_options.default.cfg   on first install only (pkg won't clobber
+                              a live, edited config)
+```
 
 ## Roadmap
 
