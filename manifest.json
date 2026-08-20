@@ -18,7 +18,7 @@
       "category": "api",
       "path": "lib/flex.lua",
       "install_as": "flex.lua",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "depends": [],
       "first_run": true,
       "description": "Utility API: inventory, wireless comms (send + sendData), colored output, block detection."
@@ -28,7 +28,7 @@
       "category": "api",
       "path": "lib/dig.lua",
       "install_as": "dig.lua",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "depends": ["flex"],
       "first_run": true,
       "description": "Motion, mining, and crash-recovery API."

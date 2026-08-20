@@ -424,16 +424,24 @@ M.condense = condense
 -- Block detection.
 -- ===========================================================================
 
-local INSPECT = {
-  fwd = turtle.inspect,
-  up = turtle.inspectUp,
-  down = turtle.inspectDown,
-}
+-- Built lazily (not as a `turtle.inspect` literal here) so merely
+-- require()ing flex doesn't crash on a plain computer with no turtle
+-- API (e.g. programs/monitor.lua, which never inspects blocks) --
+-- only actually calling getBlock()/isBlock() on one does.
+local INSPECT = {}
+if turtle then
+  INSPECT.fwd = turtle.inspect
+  INSPECT.up = turtle.inspectUp
+  INSPECT.down = turtle.inspectDown
+end
 
 -- Returns (blockName, data) where data is the raw turtle.inspect*() table
 -- (name/state/tags), or ("minecraft:air", nil) if there's nothing there.
 local function getBlock(dir)
-  local inspect = INSPECT[dir or "fwd"] or turtle.inspect
+  local inspect = INSPECT[dir or "fwd"]
+  if not inspect then
+    error("getBlock: no turtle API on this computer", 2)
+  end
   local ok, data = inspect()
   if not ok then
     return "minecraft:air", nil

@@ -581,7 +581,16 @@ local function elapsedSeconds(startTime)
   return (os.time() - startTime) / 24 * 20 * 60
 end
 
-local DIG = { fwd = turtle.dig, up = turtle.digUp, down = turtle.digDown }
+-- Built lazily (not as a `turtle.dig` literal above) so merely
+-- require()ing this module doesn't crash on a computer with no turtle
+-- API -- only actually calling a motion function does, which is the
+-- correct place for that to fail.
+local DIG = {}
+if turtle then
+  DIG.fwd = turtle.dig
+  DIG.up = turtle.digUp
+  DIG.down = turtle.digDown
+end
 
 local function dig(dir)
   local digFn = DIG[dir or "fwd"] or turtle.dig
@@ -777,7 +786,12 @@ M.back = back
 -- Placement.
 -- ===========================================================================
 
-local PLACE = { fwd = turtle.place, up = turtle.placeUp, down = turtle.placeDown }
+local PLACE = {}
+if turtle then
+  PLACE.fwd = turtle.place
+  PLACE.up = turtle.placeUp
+  PLACE.down = turtle.placeDown
+end
 
 local function place(dir)
   dir = dir or "fwd"
