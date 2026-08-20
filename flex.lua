@@ -79,7 +79,14 @@ local function getVal(hexChar)
 end
 
 local function getHex(colorConstant)
-  local idx = math.floor(math.log(colorConstant, 2) + 0.5) + 1
+  -- colorConstant is always an exact power of two (1, 2, 4, ... 32768);
+  -- count doublings rather than use math.log(x, base), which is a Lua
+  -- 5.2+ feature not available on CC:Tweaked's Lua 5.1.
+  local idx, v = 1, colorConstant
+  while v > 1 do
+    v = v / 2
+    idx = idx + 1
+  end
   return HEX_CHARS:sub(idx, idx)
 end
 
