@@ -1,52 +1,61 @@
 -- treefarm.lua
 --
--- Tends a rows x cols grid of tree plots forever (or for a fixed
--- number of passes): fells any mature tree found, replants a sapling
--- on bare ground, and leaves an already-growing sapling alone. Reboot-
--- resumable via dig.lua's usual position save; a mid-pass reboot just
--- replays that pass from its first plot, which costs a little time but
--- changes nothing (visiting an already-tended plot is a no-op), the
--- same resumability philosophy quarry.lua uses.
+-- Tends a flat, sapling-covered patch forever (or for a fixed number of
+-- passes): fells any mature tree found, replants bare ground, and
+-- leaves an already-growing sapling alone. Reboot-resumable via
+-- dig.lua's usual position save; a mid-pass reboot just replays that
+-- pass from its first cell, which costs a little time but changes
+-- nothing (revisiting an already-tended cell is a no-op), the same
+-- resumability philosophy quarry.lua uses.
 --
--- Usage: treefarm <rows> <cols> [passes <N>] [dump]
---   rows      required. Number of plot rows (Z axis).
---   cols      required. Number of plot columns (X axis).
+-- Usage: treefarm <width> <length> [passes <N>] [dump]
+--   width     required. X-axis size of the patch, in blocks.
+--   length    required. Z-axis size of the patch, in blocks.
 --   passes <N> optional, defaults to unlimited -- stop after N full
---             passes over the grid instead of tending forever.
+--             passes over the patch instead of tending forever.
 --   dump      automatically dump dumplist-matching items to a chest
 --             sideways when the inventory fills up.
 --
--- Plot layout: plots are spaced PLOT_SPACING blocks apart on both
--- axes -- not a turtle-pathing requirement (dig.lua's dig-through
--- movement would cope with adjacent plots just fine), but real trees
--- need room to grow their canopy without a neighboring trunk in the
--- way.
+-- `width`/`length` are the *actual footprint in blocks*, not a plot
+-- count -- every single ground cell in that width x length rectangle
+-- gets its own visit, starting at the turtle's own position (its
+-- (0,0) corner). Set up like this:
 --
--- Per-plot mechanics: the turtle cruises at CRUISE_Y (safely above
--- any ordinary tree's canopy, so horizontal travel between plots
--- doesn't repeatedly clip a neighbor's leaves) and, to visit a plot,
+--     [chest] [turtle] [grass][grass][grass]...
+--                       ^ (0,0)      ^ (width-1, 0)
+--
+-- i.e. a chest directly behind the turtle's start position/facing
+-- (this doubles as the base chest lib/job.lua's checkFuel()/checkInv()
+-- round trips already return to and face -- gotoBase() ends at
+-- (0,0,0), r=180, looking straight at it) and the patch itself
+-- starting at the turtle's feet and extending forward (+Z) and to the
+-- right (+X) from there.
+--
+-- Per-cell mechanics: the turtle cruises at CRUISE_Y (safely above any
+-- ordinary tree's canopy, so horizontal travel between cells doesn't
+-- repeatedly clip a neighboring tree's leaves) and, to visit a cell,
 -- descends straight down through that column to y=0 -- its own
--- starting height, standing directly above the plot's soil. That
--- descent is a plain dig.gotoy(0)/dig.down() call: dig.lua's existing
--- dig-through movement already fells whatever trunk/leaves are in the
--- way as a side effect of just moving down, so there is no separate
--- "chop the tree" step here. At y=0 the turtle checks the soil
--- (inspectDown): a sapling/propagule/fungus already there means this
--- tree hasn't grown yet and is left alone; anything else gets a fresh
--- sapling planted (placeDown, harmlessly a no-op if none is on hand or
--- the ground can't take one right now). Then it's back up to cruise
--- altitude and on to the next plot.
+-- starting height, standing directly above the cell's soil. That
+-- descent is a plain dig.gotoy(0) call: dig.lua's existing dig-through
+-- movement already fells whatever trunk/leaves are in the way as a
+-- side effect of just moving down, so there is no separate "chop the
+-- tree" step here. At y=0 the turtle checks the soil (inspectDown): a
+-- sapling/propagule/fungus already there means this tree hasn't grown
+-- yet and is left alone; anything else gets a fresh sapling planted
+-- (placeDown, harmlessly a no-op if none is on hand or the ground
+-- can't take one right now). Then it's back up to cruise altitude and
+-- on to the next cell.
 --
--- Known limitation: only the trunk column directly above each plot's
--- soil gets cleared -- leaves left hanging to the sides (and any
--- saplings they eventually drop) are not chased down. Fine for the
--- common single-block-trunk trees; a future pass could widen this.
+-- Because every ground cell gets its own descent (not just a sparse
+-- subset of "plots"), a neighboring tree's leaves hanging out over an
+-- adjacent cell get cleared too, when that cell's own turn comes --
+-- there's no dedicated column left permanently unchecked the way a
+-- widely-spaced plot layout would leave one.
 
 local dig = require("dig")
 local flex = require("flex")
 local job = require("job")
 
-local PLOT_SPACING = 2
 local CRUISE_Y = 8 -- tall enough for most trees; taller ones just get
                     -- dug through during descent regardless, so this
                     -- is a travel-collision heuristic, not a hard cap
@@ -58,12 +67,12 @@ local SAPLING_MATCH = { "sapling", "propagule", "fungus" }
 
 local args = { ... }
 if #args < 2 then
-  flex.printColors("treefarm <rows> <cols> [passes <N>] [dump]", colors.lightBlue)
+  flex.printColors("treefarm <width> <length> [passes <N>] [dump]", colors.lightBlue)
   return
 end
 
-local rows = tonumber(args[1])
-local cols = tonumber(args[2])
+local width = tonumber(args[1])
+local length = tonumber(args[2])
 local maxPasses = nil
 local dodumps = false
 
@@ -75,8 +84,8 @@ for i, a in ipairs(args) do
   end
 end
 
-if not rows or not cols or rows < 1 or cols < 1 then
-  flex.send("Invalid grid dimensions", colors.red)
+if not width or not length or width < 1 or length < 1 then
+  flex.send("Invalid patch dimensions", colors.red)
   return
 end
 
@@ -89,7 +98,7 @@ if dig.saveExists() then
 end
 dig.makeStartup("treefarm", args)
 
-flex.send("#B Tree farm: #F" .. rows .. "#Bx#F" .. cols .. "#B plots"
+flex.send("#B Tree farm: #F" .. width .. "#Bx#F" .. length .. "#B blocks"
   .. (maxPasses and ("#B, #F" .. maxPasses .. "#B pass(es)") or ""))
 
 -- ===========================================================================
@@ -102,16 +111,16 @@ local j = job.new({
   kind = "treefarm",
   workingState = "farming",
   dump = dodumps,
-  fuelEstimate = function() return (rows + cols + CRUISE_Y + 1) * 3 end,
+  fuelEstimate = function() return (width + length + CRUISE_Y + 1) * 3 end,
   extra = function()
-    return { rows = rows, cols = cols, pass = passIndex }
+    return { width = width, length = length, pass = passIndex }
   end,
 })
 
 j.broadcast("farming")
 
 -- ===========================================================================
--- Per-plot tending.
+-- Per-cell tending.
 -- ===========================================================================
 
 local function selectSapling()
@@ -124,8 +133,8 @@ local function selectSapling()
   return false
 end
 
--- Called with the turtle already at cruise altitude, above plot (x, z).
-local function tendPlot(x, z)
+-- Called with the turtle already at cruise altitude, above cell (x, z).
+local function tendCell(x, z)
   if not dig.gotox(x) then return false end
   if not dig.gotoz(z) then return false end
   if not dig.gotoy(0) then return false end -- fells any mature trunk in the way
@@ -140,23 +149,23 @@ local function tendPlot(x, z)
   return true
 end
 
--- Sweeps the whole grid once, boustrophedon (row direction alternates
+-- Sweeps the whole patch once, boustrophedon (row direction alternates
 -- by row, same reasoning as quarry.lua's mineLayer -- no long return
 -- trip between rows, and it's resumable with zero extra bookkeeping).
-local function tendGrid()
+local function tendPatch()
   if not dig.gotoy(CRUISE_Y) then return false end
 
-  for row = 0, rows - 1 do
-    local z = row * PLOT_SPACING
+  for row = 0, length - 1 do
+    local z = row
     local forward = (row % 2 == 0)
-    local colFrom = forward and 0 or (cols - 1)
-    local colTo = forward and (cols - 1) or 0
+    local colFrom = forward and 0 or (width - 1)
+    local colTo = forward and (width - 1) or 0
     local colStep = forward and 1 or -1
 
     local col = colFrom
     while true do
-      local x = col * PLOT_SPACING
-      if not tendPlot(x, z) then
+      local x = col
+      if not tendCell(x, z) then
         return false
       end
 
@@ -183,7 +192,7 @@ end
 
 local stoppedEarly = false
 while not maxPasses or passIndex < maxPasses do
-  if not tendGrid() then
+  if not tendPatch() then
     stoppedEarly = dig.isStuck()
     break
   end
@@ -203,6 +212,12 @@ dig.gotor(0)
 if dodumps then
   dig.doDump()
 end
+
+-- The base chest is *behind* the turtle's start facing (r=180), same
+-- convention as job.lua's gotoBase() -- not r=0, which faces into the
+-- patch itself. dropNotFuel() blocks forever waiting for a chest it
+-- can see, so this turn is required, not cosmetic.
+dig.gotor(180)
 dig.dropNotFuel()
 
 if stoppedEarly then
