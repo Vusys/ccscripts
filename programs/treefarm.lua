@@ -134,12 +134,26 @@ local function selectSapling()
 end
 
 -- Called with the turtle already at cruise altitude, above cell (x, z).
+--
+-- The sapling itself sits at the *same* height as the turtle's own
+-- starting position (y=0) -- both rest on the soil one level below
+-- (y=-1) -- so the turtle stops one cell short, at y=1, rather than
+-- descending all the way to y=0. Landing at y=0 would mean physically
+-- moving into the sapling's own cell just to arrive, digging up
+-- whatever's growing there (mature or not) as a side effect of travel,
+-- before ever checking what it was. Stopping at y=1 digs through any
+-- trunk/leaves *above* the sapling layer on the way down (still a
+-- side effect of gotoy, same as before) without disturbing y=0 itself,
+-- so inspectDown()/digDown()/placeDown() below can tell an immature
+-- sapling apart from a felled trunk's base log/bare soil correctly.
 local function tendCell(x, z)
   if not dig.gotox(x) then return false end
   if not dig.gotoz(z) then return false end
-  if not dig.gotoy(0) then return false end -- fells any mature trunk in the way
+  if not dig.gotoy(1) then return false end
 
   if not flex.isBlock(SAPLING_MATCH, "down") then
+    dig.digDown() -- clear a felled trunk's base log or stray leaves;
+                   -- harmless no-op if the cell's already bare
     if selectSapling() then
       dig.placeDown()
     end
@@ -204,9 +218,14 @@ end
 -- Done (or stuck) -- head home and clear the auto-resume trigger.
 -- ===========================================================================
 
-dig.gotoy(0)
+-- Horizontal travel first, while still at cruise altitude (tendPatch()
+-- always leaves the turtle there) -- descending to y=0 elsewhere in
+-- the patch, then traveling home at ground level, would plow straight
+-- through whatever the last few cells just had planted. Only descend
+-- once actually over the home cell.
 dig.gotox(0)
 dig.gotoz(0)
+dig.gotoy(0)
 dig.gotor(0)
 
 if dodumps then
