@@ -65,6 +65,11 @@ Example: `pkg install tunnel fasttunnel`.
   Digs straight down until bedrock (or `maxDepth`, if given).
   `return` ascends back to the start when done instead of staying at
   the bottom.
+- **corridor** `<length> [dump] [return]`
+  Digs a straight 1-wide passage: clears the block above and below in
+  place at each position (no vertical movement) while advancing
+  through the block in front, for `length` blocks. `return` walks back
+  to the start when done instead of staying at the far end.
 - **courier** `<length> [trips <N>] [dump] [idle]`
   Shuttles items between a pickup chest behind the start and a dropoff
   chest ahead of the far end, `length` blocks away. `idle` waits for a
@@ -78,7 +83,13 @@ Example: `pkg install tunnel fasttunnel`.
   overlap.
 - **tunnel** `<width> <height> <length> [return]`
   Digs a rectangular tunnel, `width` must be odd. `return` sends it
-  back to the start when done.
+  back to the start when done. `tunnel` is also the name of a stock
+  CC:Tweaked turtle program (`<length>`-only, in `/rom/programs/turtle`)
+  -- if this one isn't actually installed (`pkg install tunnel`), the
+  shell silently falls back to the stock version instead of erroring,
+  which looks like a broken argument parser (`tunnel <w> <h> <l>`
+  prints a `tunnel <length>` usage line). Run `pkg list` if `tunnel`
+  behaves like it only takes one argument.
 - **fasttunnel** `<length>`
   A fixed 3x3 tunnel digger optimized to avoid backtracking.
 - **dig-cli** `<save [slot]|load <slot>|clear|edit [dig|flex]|colors>`
@@ -86,12 +97,12 @@ Example: `pkg install tunnel fasttunnel`.
   the dig/flex config files.
 - **monitor** `[timeout]`
   Live wireless fleet dashboard for anything broadcasting status via
-  `lib/job.lua` -- quarry/treefarm/farm/build/bridge/well/courier all
-  do, out of the box. Rows are grouped by job kind with a per-kind
-  count summary at the top. Run it on any computer with a wireless
-  modem on the same `modem_channel` as your turtles (default 6464 for
-  everyone). If a `monitor` peripheral is attached it renders there;
-  otherwise it uses the terminal. `timeout` is how many seconds of
+  `lib/job.lua` -- quarry/treefarm/farm/build/bridge/well/corridor/
+  courier all do, out of the box. Rows are grouped by job kind with a
+  per-kind count summary at the top. Run it on any computer with a
+  wireless modem on the same `modem_channel` as your turtles (default
+  6464 for everyone). If a `monitor` peripheral is attached it renders
+  there; otherwise it uses the terminal. `timeout` is how many seconds of
   silence before a turtle is shown OFFLINE (default 30). Press `Q` to
   quit. Not installed by default --
   `pkg install monitor`.
@@ -99,7 +110,7 @@ Example: `pkg install tunnel fasttunnel`.
 ## Wireless status
 
 Every job-shaped program (`quarry`, `treefarm`, `farm`, `build`,
-`bridge`, `well`, `courier`, and anything else built on
+`bridge`, `well`, `corridor`, `courier`, and anything else built on
 `lib/job.lua`) broadcasts a small status update -- job kind, position,
 fuel, dug count, state (its own working state, e.g. `mining`, plus the
 common `paused`/`refueling`/`dumping`/`done`/`stuck`), and any job-
@@ -150,6 +161,7 @@ programs/
   build.lua
   bridge.lua
   well.lua
+  corridor.lua
   courier.lua
   relay.lua
   tunnel.lua
