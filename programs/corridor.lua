@@ -8,10 +8,14 @@
 -- directly ahead). No sweeping side to side and no width/height
 -- parameters -- just forward, for the given distance.
 --
--- Usage: corridor <length> [dump] [return]
+-- Deliberately doesn't need an output chest anywhere: no dump option,
+-- no inventory-full round trip back to base -- it just mines and stops
+-- once it reaches its destination. If the inventory fills up mid-dig,
+-- that's on the caller to manage (dig-cli/pkg still work normally
+-- afterward); this program doesn't go looking for somewhere to unload.
+--
+-- Usage: corridor <length> [return]
 --   length  required. How many blocks to advance.
---   dump    automatically dump dumplist-matching items to a chest
---           sideways when the inventory fills up.
 --   return  walk back to the starting position when done instead of
 --           staying at the far end.
 
@@ -25,17 +29,14 @@ local job = require("job")
 
 local args = { ... }
 if #args < 1 then
-  flex.printColors("corridor <length> [dump] [return]", colors.lightBlue)
+  flex.printColors("corridor <length> [return]", colors.lightBlue)
   return
 end
 
 local length = tonumber(args[1])
-local dodumps = false
 local doReturn = false
 for _, a in ipairs(args) do
-  if a == "dump" then
-    dodumps = true
-  elseif a == "return" then
+  if a == "return" then
     doReturn = true
   end
 end
@@ -63,7 +64,6 @@ flex.send("#B Corridor: #F" .. length .. "#B blocks")
 local j = job.new({
   kind = "corridor",
   workingState = "digging",
-  dump = dodumps,
   fuelEstimate = function() return length + 1 end,
   total = length,
   extra = function() return { length = length } end,
@@ -84,7 +84,6 @@ local stoppedEarly = false
 while dig.getz() < length do
   j.checkHalt()
   j.checkFuel()
-  j.checkInv()
   if dig.isStuck() then
     stoppedEarly = true
     break
@@ -116,10 +115,6 @@ end
 if doReturn and not stoppedEarly then
   dig.gotoz(0)
   dig.gotor(0)
-end
-
-if dodumps then
-  dig.doDump()
 end
 
 if stoppedEarly then
