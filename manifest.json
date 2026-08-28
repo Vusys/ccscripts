@@ -170,10 +170,10 @@
       "category": "program",
       "path": "programs/corridor.lua",
       "install_as": "corridor.lua",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "depends": ["job", "dig", "flex"],
       "first_run": false,
-      "description": "Digs a straight 1-wide passage, clearing above/below in place as it advances."
+      "description": "Digs a straight 1-wide passage, clearing above/below in place as it advances. Needs no chest."
     },
     {
       "name": "courier",

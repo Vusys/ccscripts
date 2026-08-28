@@ -8,11 +8,14 @@
 -- directly ahead). No sweeping side to side and no width/height
 -- parameters -- just forward, for the given distance.
 --
--- Deliberately doesn't need an output chest anywhere: no dump option,
--- no inventory-full round trip back to base -- it just mines and stops
+-- Deliberately doesn't need any chest anywhere -- no dump option, no
+-- inventory-full round trip, and no low-fuel round trip either (skips
+-- job.lua's checkFuel(), which would otherwise return to base to drop
+-- items and suck up fuel from a chest there). It just mines and stops
 -- once it reaches its destination. If the inventory fills up mid-dig,
--- that's on the caller to manage (dig-cli/pkg still work normally
--- afterward); this program doesn't go looking for somewhere to unload.
+-- that's on the caller to manage; if fuel runs low, dig.lua's own
+-- per-move refuel(1) (used internally by fwd()/dig()) blocks and waits
+-- for more fuel in the onboard fuel slot rather than going anywhere.
 --
 -- Usage: corridor <length> [return]
 --   length  required. How many blocks to advance.
@@ -64,7 +67,6 @@ flex.send("#B Corridor: #F" .. length .. "#B blocks")
 local j = job.new({
   kind = "corridor",
   workingState = "digging",
-  fuelEstimate = function() return length + 1 end,
   total = length,
   extra = function() return { length = length } end,
 })
@@ -83,7 +85,6 @@ end
 local stoppedEarly = false
 while dig.getz() < length do
   j.checkHalt()
-  j.checkFuel()
   if dig.isStuck() then
     stoppedEarly = true
     break

@@ -69,9 +69,9 @@ Example: `pkg install tunnel fasttunnel`.
   Digs a straight 1-wide passage: clears the block above and below in
   place at each position (no vertical movement) while advancing
   through the block in front, for `length` blocks. `return` walks back
-  to the start when done instead of staying at the far end. No output
-  chest needed -- it doesn't manage inventory at all, just mines and
-  stops.
+  to the start when done instead of staying at the far end. Needs no
+  chest at all -- it doesn't manage inventory and won't wander off to
+  refuel; if fuel runs low it just waits for more in its own fuel slot.
 - **courier** `<length> [trips <N>] [dump] [idle]`
   Shuttles items between a pickup chest behind the start and a dropoff
   chest ahead of the far end, `length` blocks away. `idle` waits for a
