@@ -8,7 +8,7 @@
       "category": "program",
       "path": "pkg.lua",
       "install_as": "pkg.lua",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "depends": [],
       "first_run": true,
       "description": "Package manager: install/update/remove scripts from this repo."

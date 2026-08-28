@@ -90,6 +90,18 @@ end
 -- Manifest fetch + package download.
 -- ===========================================================================
 
+-- raw.githubusercontent.com sits behind a CDN that caches each URL for a
+-- few minutes regardless of what the turtle does locally -- forceRefresh
+-- bypasses pkg's own pkg_manifest_cache.json, but not that edge cache, so
+-- an update/refresh run shortly after a push can still fetch a stale
+-- copy and report "up to date" against it. A cache-busting query param
+-- (ignored by GitHub, but part of the CDN's cache key) forces a real
+-- fetch whenever staleness would actually matter -- refresh/update, not
+-- a first-time install, which has nothing stale to fight.
+local function cacheBust()
+  return "?cb=" .. os.epoch("utc")
+end
+
 local function fetchManifest(forceRefresh)
   if not forceRefresh then
     local cached = readJSON(MANIFEST_CACHE)
@@ -106,6 +118,9 @@ local function fetchManifest(forceRefresh)
 
   local repo, branch = loadConfig()
   local url = "https://raw.githubusercontent.com/" .. repo .. "/" .. branch .. "/manifest.json"
+  if forceRefresh then
+    url = url .. cacheBust()
+  end
   local response, err = http.get(url)
   if not response then
     say("Could not fetch manifest.json: " .. tostring(err), colors.red)
@@ -177,7 +192,7 @@ local function compareVersions(a, b)
   return 0
 end
 
-local function downloadEntry(entry, repo, branch)
+local function downloadEntry(entry, repo, branch, bustCache)
   if entry.install_mode == "if-missing" and fs.exists(entry.install_as) then
     return true
   end
@@ -186,6 +201,9 @@ local function downloadEntry(entry, repo, branch)
   end
 
   local url = "https://raw.githubusercontent.com/" .. repo .. "/" .. branch .. "/" .. entry.path
+  if bustCache then
+    url = url .. cacheBust()
+  end
   local response, err = http.get(url)
   if not response then
     return false, err or "request failed"
@@ -274,7 +292,7 @@ local function cmdUpdate(names)
     local have = installed[entry.name]
     if not have or compareVersions(have, entry.version) < 0 then
       say("Updating " .. entry.name .. " -> " .. entry.version .. "...")
-      local ok, err = downloadEntry(entry, repo, branch)
+      local ok, err = downloadEntry(entry, repo, branch, true)
       if ok then
         installed[entry.name] = entry.version
         saveInstalled(installed)
