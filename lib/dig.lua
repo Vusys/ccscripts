@@ -597,10 +597,35 @@ if turtle then
   DIG.down = turtle.digDown
 end
 
-local function dig(dir)
-  local digFn = DIG[dir or "fwd"] or turtle.dig
+-- Digs in `dir` until the way is clear or `stuck` is already set,
+-- bailing out after STUCK_TIMEOUT even if `digFn()` keeps succeeding --
+-- a falling block (sand/gravel) or a hopper/dispenser feeding the
+-- space can otherwise keep this digging forever, since "the block keeps
+-- coming back" never makes digFn() return false on its own. Returns
+-- false if it gave up still blocked, true if the space actually
+-- cleared (or was already clear).
+local function digUntilClear(digFn, startTime)
   while digFn() and not stuck do
     dugtotal = dugtotal + 1
+    if elapsedSeconds(startTime) > STUCK_TIMEOUT then
+      return false
+    end
+  end
+  return true
+end
+
+-- Reaches into `dir` and digs -- does not move there itself (see
+-- digThrough() for that). Gives up (without setting `stuck`; nothing
+-- here is blocking forward progress, just this one space) if the block
+-- keeps regenerating for a full STUCK_TIMEOUT.
+local function dig(dir)
+  local digFn = DIG[dir or "fwd"] or turtle.dig
+  if not digUntilClear(digFn, os.time()) then
+    flex.send(
+      "#EGave up digging " .. (dir or "fwd") .. " after #F" .. STUCK_TIMEOUT
+        .. "#Es -- block kept reappearing (falling sand/gravel?).",
+      colors.orange
+    )
   end
 end
 
@@ -660,9 +685,7 @@ local function digThrough(dir)
   local startTime = os.time()
 
   while not moveFn() do
-    while digFn() and not stuck do
-      dugtotal = dugtotal + 1
-    end
+    digUntilClear(digFn, startTime)
     if attack then
       attackTowards(dir)
     end
