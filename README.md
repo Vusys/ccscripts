@@ -65,13 +65,22 @@ Example: `pkg install tunnel fasttunnel`.
   Digs straight down until bedrock (or `maxDepth`, if given).
   `return` ascends back to the start when done instead of staying at
   the bottom.
-- **corridor** `<length> [return]`
+- **corridor** `<length> [block] [gap <N>] [return]`
   Digs a straight 1-wide passage: clears the block above and below in
   place at each position (no vertical movement) while advancing
   through the block in front, for `length` blocks. `return` walks back
   to the start when done instead of staying at the far end. Needs no
   chest at all -- it doesn't manage inventory and won't wander off to
   refuel; if fuel runs low it just waits for more in its own fuel slot.
+  `block` (a substring matched against inventory item names, same
+  convention as `build`'s schematic cells) refloors each cell right
+  after digging it out -- meant for replacing cobblestone plugged into
+  gaps in a bedrock floor. If the block below can't be broken (bedrock,
+  or anything else), there's nothing to fill and it just moves on;
+  running out of `block` in the inventory is reported once at the end
+  instead of blocking the dig. `gap <N>` only places every Nth
+  position instead of every one (default 1) -- every position is still
+  dug out regardless.
 - **courier** `<length> [trips <N>] [dump] [idle]`
   Shuttles items between a pickup chest behind the start and a dropoff
   chest ahead of the far end, `length` blocks away. `idle` waits for a

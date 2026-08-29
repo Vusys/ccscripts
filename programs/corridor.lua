@@ -17,8 +17,21 @@
 -- per-move refuel(1) (used internally by fwd()/dig()) blocks and waits
 -- for more fuel in the onboard fuel slot rather than going anywhere.
 --
--- Usage: corridor <length> [return]
+-- Usage: corridor <length> [block] [gap <N>] [return]
 --   length  required. How many blocks to advance.
+--   block   optional. A substring matched against inventory item names
+--           (same convention as build.lua's schematic cells). If given,
+--           the block below is filled back in with this item right
+--           after it's dug out -- meant for re-flooring a bedrock
+--           corridor where someone's plugged the gaps with cobblestone:
+--           the cobble digs out, breaking it, and this replaces it in
+--           the same step. If the block below can't be broken (bedrock,
+--           or anything else digDown() fails on), there's nothing to
+--           fill -- the turtle just moves on without placing.
+--   gap     optional, follows the literal word "gap". Only place every
+--           N-th eligible position instead of every one (default 1,
+--           i.e. every position). Purely a placement throttle -- every
+--           position is still dug out regardless of gap.
 --   return  walk back to the starting position when done instead of
 --           staying at the far end.
 
@@ -32,15 +45,31 @@ local job = require("job")
 
 local args = { ... }
 if #args < 1 then
-  flex.printColors("corridor <length> [return]", colors.lightBlue)
+  flex.printColors("corridor <length> [block] [gap <N>] [return]", colors.lightBlue)
   return
 end
 
 local length = tonumber(args[1])
+local fillBlock = nil
+local gap = 1
 local doReturn = false
-for _, a in ipairs(args) do
+
+local i = 2
+while i <= #args do
+  local a = args[i]
   if a == "return" then
     doReturn = true
+    i = i + 1
+  elseif a == "gap" then
+    gap = tonumber(args[i + 1])
+    if not gap or gap < 1 then
+      flex.send("Invalid gap", colors.red)
+      return
+    end
+    i = i + 2
+  else
+    fillBlock = a
+    i = i + 1
   end
 end
 
@@ -58,7 +87,10 @@ if dig.saveExists() then
 end
 dig.makeStartup("corridor", args)
 
-flex.send("#B Corridor: #F" .. length .. "#B blocks")
+flex.send(
+  "#B Corridor: #F" .. length .. "#B blocks"
+    .. (fillBlock and (", filling #F" .. fillBlock .. "#B every #F" .. gap .. "#B block(s)") or "")
+)
 
 -- ===========================================================================
 -- Job scaffold.
@@ -68,7 +100,7 @@ local j = job.new({
   kind = "corridor",
   workingState = "digging",
   total = length,
-  extra = function() return { length = length } end,
+  extra = function() return { length = length, block = fillBlock, gap = gap } end,
 })
 
 j.broadcast("digging")
@@ -77,9 +109,40 @@ j.broadcast("digging")
 -- Main loop.
 -- ===========================================================================
 
-local function clearColumn()
+-- Same substring-match-against-inventory idiom as build.lua's
+-- selectItem() -- picks the first slot holding something matching
+-- `name`, leaving it selected. Returns false (nothing selected) if
+-- none is found.
+local function selectItem(name)
+  for slot = 1, 16 do
+    if turtle.getItemCount(slot) > 0 and flex.isItem(name, slot) then
+      turtle.select(slot)
+      return true
+    end
+  end
+  return false
+end
+
+local missingCount = 0
+
+-- Clears above and below in place, same as before -- but when a fill
+-- block was given, also tracks whether the block below actually broke
+-- (as opposed to there being nothing there, or it being unbreakable)
+-- so it knows whether there's a hole worth filling at all.
+local function clearColumn(position)
   dig.dig("up")
+
+  local hadBlock = turtle.detectDown()
   dig.dig("down")
+  local broke = hadBlock and not turtle.detectDown()
+
+  if fillBlock and broke and (position % gap == 0) then
+    if selectItem(fillBlock) then
+      dig.placeDown()
+    else
+      missingCount = missingCount + 1
+    end
+  end
 end
 
 local stoppedEarly = false
@@ -90,7 +153,7 @@ while dig.getz() < length do
     break
   end
 
-  clearColumn()
+  clearColumn(dig.getz())
 
   if not dig.fwd(1) then
     stoppedEarly = dig.isStuck()
@@ -105,7 +168,7 @@ while dig.getz() < length do
 end
 
 if not stoppedEarly then
-  clearColumn()
+  clearColumn(dig.getz())
 end
 
 -- ===========================================================================
@@ -116,6 +179,10 @@ end
 if doReturn and not stoppedEarly then
   dig.gotoz(0)
   dig.gotor(0)
+end
+
+if missingCount > 0 then
+  flex.send("#EOut of #F" .. fillBlock .. "#E, skipped #F" .. missingCount .. "#E fill(s).", colors.orange)
 end
 
 if stoppedEarly then
