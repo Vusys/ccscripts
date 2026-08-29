@@ -21,13 +21,11 @@
 --   length  required. How many blocks to advance.
 --   block   optional. A substring matched against inventory item names
 --           (same convention as build.lua's schematic cells). If given,
---           the block below is filled back in with this item right
---           after it's dug out -- meant for re-flooring a bedrock
---           corridor where someone's plugged the gaps with cobblestone:
---           the cobble digs out, breaking it, and this replaces it in
---           the same step. If the block below can't be broken (bedrock,
---           or anything else digDown() fails on), there's nothing to
---           fill -- the turtle just moves on without placing.
+--           any position left with no floor after digging down --
+--           whether a block was just dug out there or it was already
+--           open air (e.g. a gap in a bedrock corridor) -- gets this
+--           item placed back in. If the block below can't be broken
+--           (bedrock) it's still a floor, so nothing is placed there.
 --   gap     optional, follows the literal word "gap". Only place every
 --           N-th eligible position instead of every one (default 1,
 --           i.e. every position). Purely a placement throttle -- every
@@ -126,17 +124,17 @@ end
 local missingCount = 0
 
 -- Clears above and below in place, same as before -- but when a fill
--- block was given, also tracks whether the block below actually broke
--- (as opposed to there being nothing there, or it being unbreakable)
--- so it knows whether there's a hole worth filling at all.
+-- block was given, also checks whether there's a floor left afterward
+-- so it knows whether there's a hole worth filling. That covers both
+-- a block that just broke *and* a spot that was already open air --
+-- an unbroken block (bedrock) still detects afterward, so it's
+-- correctly left alone either way.
 local function clearColumn(position)
   dig.dig("up")
-
-  local hadBlock = turtle.detectDown()
   dig.dig("down")
-  local broke = hadBlock and not turtle.detectDown()
+  local hasFloor = turtle.detectDown()
 
-  if fillBlock and broke and (position % gap == 0) then
+  if fillBlock and not hasFloor and (position % gap == 0) then
     if selectItem(fillBlock) then
       dig.placeDown()
     else
