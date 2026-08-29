@@ -28,12 +28,16 @@
 --           gap in a bedrock corridor) -- gets this item placed back
 --           in. If the block below can't be broken (bedrock) it's
 --           still a floor, so nothing is placed there.
---   gap     optional, follows the literal word "gap". Only place every
---           N-th eligible position instead of every one (default 1,
---           i.e. every position). Purely a placement throttle -- every
---           position that needs digging is still dug regardless of
---           gap; a position already holding the right block is never
---           dug in the first place, gap or no gap.
+--   gap     optional, follows the literal word "gap" -- "gap 3", not a
+--           bare "3". Only place every N-th eligible position instead
+--           of every one (default 1, i.e. every position). Purely a
+--           placement throttle -- every position that needs digging is
+--           still dug regardless of gap; a position already holding
+--           the right block is never dug in the first place, gap or no
+--           gap. Any bare number/word left over after "block" is
+--           already spoken for is a usage error, not a second block
+--           name -- forgetting the word "gap" used to silently swap it
+--           in as the fill block instead.
 --   return  walk back to the starting position when done instead of
 --           staying at the far end.
 
@@ -70,6 +74,20 @@ while i <= #args do
     end
     i = i + 2
   else
+    -- Only one bare (non-keyword) token is ever valid -- the fill
+    -- block name. Without this check, "corridor 20 block 3" (missing
+    -- the literal word "gap") would silently let "3" clobber
+    -- fillBlock instead of erroring: it'd run to completion digging
+    -- everything, quietly trying to place an item named "3" that
+    -- doesn't exist, and never say why nothing got filled.
+    if fillBlock then
+      flex.send(
+        "#EUnexpected argument #F" .. a .. "#E after block #F" .. fillBlock
+          .. "#E -- gap needs the literal word #Fgap#E before the number, e.g. #Fgap " .. a .. "#E.",
+        colors.red
+      )
+      return
+    end
     fillBlock = a
     i = i + 1
   end

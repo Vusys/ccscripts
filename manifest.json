@@ -170,7 +170,7 @@
       "category": "program",
       "path": "programs/corridor.lua",
       "install_as": "corridor.lua",
-      "version": "1.4.1",
+      "version": "1.4.2",
       "depends": ["job", "dig", "flex"],
       "first_run": false,
       "description": "Digs a straight 1-wide passage, clearing above/below in place as it advances. Optionally refloors with a chosen block. Needs no chest."
