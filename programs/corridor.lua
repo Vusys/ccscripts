@@ -20,16 +20,20 @@
 -- Usage: corridor <length> [block] [gap <N>] [return]
 --   length  required. How many blocks to advance.
 --   block   optional. A substring matched against inventory item names
---           (same convention as build.lua's schematic cells). If given,
---           any position left with no floor after digging down --
---           whether a block was just dug out there or it was already
---           open air (e.g. a gap in a bedrock corridor) -- gets this
---           item placed back in. If the block below can't be broken
---           (bedrock) it's still a floor, so nothing is placed there.
+--           (same convention as build.lua's schematic cells). If the
+--           block already below the turtle matches, it's left alone
+--           entirely -- no dig, no replace. Otherwise, any position
+--           left with no floor after digging down -- whether a block
+--           was just dug out there or it was already open air (e.g. a
+--           gap in a bedrock corridor) -- gets this item placed back
+--           in. If the block below can't be broken (bedrock) it's
+--           still a floor, so nothing is placed there.
 --   gap     optional, follows the literal word "gap". Only place every
 --           N-th eligible position instead of every one (default 1,
 --           i.e. every position). Purely a placement throttle -- every
---           position is still dug out regardless of gap.
+--           position that needs digging is still dug regardless of
+--           gap; a position already holding the right block is never
+--           dug in the first place, gap or no gap.
 --   return  walk back to the starting position when done instead of
 --           staying at the far end.
 
@@ -129,8 +133,18 @@ local missingCount = 0
 -- a block that just broke *and* a spot that was already open air --
 -- an unbroken block (bedrock) still detects afterward, so it's
 -- correctly left alone either way.
+--
+-- If the block already down there is already a match for fillBlock,
+-- the whole below-dig is skipped -- breaking and replacing it with an
+-- identical block would just waste time (and durability/inventory)
+-- for no change.
 local function clearColumn(position)
   dig.dig("up")
+
+  if fillBlock and flex.isBlockDown(fillBlock) then
+    return
+  end
+
   dig.dig("down")
   local hasFloor = turtle.detectDown()
 
