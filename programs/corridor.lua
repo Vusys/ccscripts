@@ -84,8 +84,16 @@ end
 -- Set up dig.lua for this job, then hook into its save/resume mechanism.
 -- ===========================================================================
 
+-- How many eligible (needed-a-fill) positions have been seen so far --
+-- gap throttles against this count, not the raw z coordinate (see
+-- clearColumn() below). Restored from dig.lua's save/resume "extra"
+-- field on a mid-corridor reboot so the throttle picks up where it
+-- left off instead of re-placing (or re-skipping) around the seam.
+local eligibleSeen = 0
+
 if dig.saveExists() then
   dig.loadCoords()
+  eligibleSeen = tonumber(dig.getExtra()) or 0
 end
 dig.makeStartup("corridor", args)
 
@@ -138,7 +146,7 @@ local missingCount = 0
 -- the whole below-dig is skipped -- breaking and replacing it with an
 -- identical block would just waste time (and durability/inventory)
 -- for no change.
-local function clearColumn(position)
+local function clearColumn()
   dig.dig("up")
 
   if fillBlock and flex.isBlockDown(fillBlock) then
@@ -148,11 +156,21 @@ local function clearColumn(position)
   dig.dig("down")
   local hasFloor = turtle.detectDown()
 
-  if fillBlock and not hasFloor and (position % gap == 0) then
-    if selectItem(fillBlock) then
-      dig.placeDown()
-    else
-      missingCount = missingCount + 1
+  if fillBlock and not hasFloor then
+    eligibleSeen = eligibleSeen + 1
+    -- Persisted immediately -- dig.fwd() right after this call is
+    -- what actually flushes it to disk, same as x/y/z/r.
+    dig.setExtra(tostring(eligibleSeen))
+    -- 0-indexed so the very first eligible position always fills,
+    -- same as the un-throttled (gap 1) case, then every gap-th one
+    -- after it -- e.g. gap 3 fills the 1st, 4th, 7th eligible spot,
+    -- wherever along the corridor those actually fall.
+    if (eligibleSeen - 1) % gap == 0 then
+      if selectItem(fillBlock) then
+        dig.placeDown()
+      else
+        missingCount = missingCount + 1
+      end
     end
   end
 end
@@ -165,7 +183,7 @@ while dig.getz() < length do
     break
   end
 
-  clearColumn(dig.getz())
+  clearColumn()
 
   if not dig.fwd(1) then
     stoppedEarly = dig.isStuck()
@@ -180,7 +198,7 @@ while dig.getz() < length do
 end
 
 if not stoppedEarly then
-  clearColumn(dig.getz())
+  clearColumn()
 end
 
 -- ===========================================================================

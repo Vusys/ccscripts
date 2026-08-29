@@ -78,9 +78,10 @@ Example: `pkg install tunnel fasttunnel`.
   gaps in a bedrock floor. If the block below can't be broken (bedrock,
   or anything else), there's nothing to fill and it just moves on;
   running out of `block` in the inventory is reported once at the end
-  instead of blocking the dig. `gap <N>` only places every Nth
-  position instead of every one (default 1) -- every position is still
-  dug out regardless.
+  instead of blocking the dig. `gap <N>` only places at every Nth real
+  gap it finds, not every one (default 1) -- every position is still
+  dug out regardless, and one already holding the right block is left
+  untouched entirely.
 - **courier** `<length> [trips <N>] [dump] [idle]`
   Shuttles items between a pickup chest behind the start and a dropoff
   chest ahead of the far end, `length` blocks away. `idle` waits for a
